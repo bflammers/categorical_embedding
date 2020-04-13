@@ -3,6 +3,8 @@
 
 An embedding for categorical data that is well suited for anomaly detection. It involves a modified version of PCA that uses the inverse of the covariance matrix of binary encoded categories. The motivation for this embedding is currently mostly driven by heuristic thinking and experiments. It would be cool if someone with a more thorough computational statistics background could come up with a proper theory behind this approach! I would be happy to brainstorm.
 
+![alt text][images/example.png]
+
 ## Intended outcome
 
 * A reproducible transformation of categorical data to a small number (small relative to the number of categories, which is often very large) of features that can be used in an anomaly detection pipeline

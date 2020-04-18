@@ -123,16 +123,16 @@ class CategoricalEmbedding(PCA):
 
     """ A Categorical Embedding that preserves sparsity """
 
-    def __init__(self, drop_zero_variance=True):
+    def __init__(self, drop_colinear_components=True):
 
         super().__init__()
-        self.drop_zero_variance = drop_zero_variance
+        self.drop_colinear_components = drop_colinear_components
         # self.cov_mat = None
 
     def write_json(self, fp):
 
         ser = {
-            'drop_zero_variance': self.drop_zero_variance,
+            'drop_colinear_components': self.drop_colinear_components,
             '_eig_vals': self._eig_vals.tolist(),
             '_eig_vecs': self._eig_vecs.tolist()
         }
@@ -145,7 +145,7 @@ class CategoricalEmbedding(PCA):
         with open(fp, 'r') as input_json:
             ser = json.load(input_json)
 
-        self.drop_zero_variance = ser['drop_zero_variance']
+        self.drop_colinear_components = ser['drop_colinear_components']
         self._eig_vals = np.array(ser['_eig_vals'])
         self._eig_vecs = np.array(ser['_eig_vecs'])
 
@@ -165,36 +165,43 @@ class CategoricalEmbedding(PCA):
         self._eigen_decomposition(inv_cov_mat)
 
         # Remove components that do not capture any variance
-        if self.drop_zero_variance:
-            self._remove_zero_variance(X)
+        if self.drop_colinear_components:
+            self._drop_colinear_components(X)
 
-    def _remove_zero_variance(self, X):
-
-        # TODO: this might be a bit dangerous - think about it some more
+    def _drop_colinear_components(self, X):
 
         """
-        The logic behind this function is that when a couple of dimension in X
-        are perfectly colinear, there are also some components that do not do
-        anything and do not capture any variance. We want to remove these
-        because they also do not capture rare events
-        However, it is a bit tricky - where is the threshold?
+        Due to the encoding scheme, groups of mutually exclusive columns are 
+        clearly distinguishable in the covariance matrix. In some experiments 
+        I have seen that a small number of components do not capture any 
+        variation between observations, but rather capture variation between 
+        groups of columns.  
+        
+        This small number of components is employed by the 
+        eigendecomposition to capture the large differences between these blocks
+        of columns in the covariance matrix, after which subtle variations between 
+        observations in these mutually exclusive groups are modelled by the other 
+        components. This yield an compression benefit. However, it is not something
+        we are interested in since these blocks by definition model the bulk of 
+        the data, we are interested in anomalies - small uncommon variations that 
+        are captured by components that model the subtle variations. 
+
+        This method drops the components that model the bulk of the data.
         """
 
         # Calculate components
         components = super().transform(X, None)
 
         # Which components have a variance larger than the threshold
-        components_mask = np.diag(np.cov(components.T)) > 1e-18
+        mask = np.diag(np.cov(components.T)) > 1e-18
 
-        n_zero_variance = np.sum(components_mask)
-        if n_zero_variance > 5:
-            message = '{} components zero variance! Does this make sense?!'\
-                .format(n_zero_variance)
-            warnings.warn(message)
+        # Count number of components that do not make the cut and give warning
+        message = '{} components zero variance and removed!'.format(np.sum(~mask))
+        warnings.warn(message)
 
-        # Delete these components
-        self._eig_vals = self._eig_vals[components_mask]
-        self._eig_vecs = self._eig_vecs[:, components_mask]
+        # Keep only these components
+        self._eig_vals = self._eig_vals[mask]
+        self._eig_vecs = self._eig_vecs[:, mask]
 
 
 class DummyEncoder(object):

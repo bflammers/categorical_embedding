@@ -1,7 +1,7 @@
 
 # Density Preserving Categorical Embedding
 
-An embedding for categorical data that is well suited for anomaly detection. It involves a modified version of PCA that uses the inverse of the covariance matrix of binary encoded categories. The motivation for this embedding is currently mostly driven by heuristic thinking and experiments. It would be cool if someone with a more thorough computational statistics background could come up with a proper theory behind this approach! I would be happy to brainstorm.
+An embedding for categorical data that is well suited for anomaly detection. It involves a modified version of PCA that uses the inverse of the covariance matrix of binary encoded categories. The motivation for this embedding is currently mostly driven by heuristic thinking and experiments. 
 
 <p align="center">
   <img width="464" height="248" src="https://raw.githubusercontent.com/bflammers/categorical_embedding/master/images/example.png">
